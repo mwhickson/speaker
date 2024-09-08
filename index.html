@@ -132,10 +132,10 @@
 
 					<ul id="controls">
 						<li><button type="button" id="doSpeakText">Speak</button></li>
-						<li><button type="button" id="doPauseSpeaking">Pause</button></li>
-						<li><button type="button" id="doStopSpeaking">Stop</button></li>
+						<li style="display: none"><button type="button" id="doPauseSpeaking">Pause</button></li>
+						<li style="display: none"><button type="button" id="doStopSpeaking">Stop</button></li>
 						<li><button type="button" id="doClearText">Clear Text</button></li>
-						<li><progress id="speechProgress" max="100" value="0">0/100</progress></li>
+						<li style="display: none"><progress id="speechProgress" max="100" value="0">0/100</progress></li>
 					</ul>
 				</fieldset>
 			</form>
@@ -145,16 +145,32 @@
 
 			const speechEngine = window.speechSynthesis
 
+			const voices = {
+				"en-GB": [],
+				"en-GB-SCOTLAND": [],
+				"en-US": [],
+				"en-US-NYC": [],
+			} 
+
+			const setVoices = (voicelist) => {
+				voices["en-GB"] = voicelist.filter((v) => v.lang === "en-GB")
+				voices["en-GB-SCOTLAND"] = voicelist.filter((v) => v.lang === "en-GB-SCOTLAND")
+				voices["en-US"] = voicelist.filter((v) => v.lang === "en-US")
+				voices["en-US-NYC"] = voicelist.filter((v) => v.lang === "en-US-NYC") 
+			}
+
 			// Firefox returns a *CORNUCOPIA* of voices... and Chrome needs an event listener to record the list
 			// English language options are "en-029", "en-GB", "en-GB-SCOTLAND", "en-GB-X-GBCLAN", "en-GB-X-GBCWMD", "en-GB-X-RP", "en-US", "en-US-NYC"
 			let voicelist = speechEngine.getVoices() 
 			speechEngine.addEventListener("voiceschanged", () => {
 				voicelist = speechEngine.getVoices()
-				speaker.setVoices(voicelist)
-				app.populateVoiceList(speaker.voices)
+				setVoices(voicelist)
+				app.populateVoiceList(voices)
 			})
 
 			class App {
+				self = this
+
 				ui = {
 					container: undefined,
 					buttons: {
@@ -173,19 +189,29 @@
 				}
 
 				constructor(appSelector) {
-					this.ui.container = document.querySelector(appSelector)
+					self = this
 
-					this.ui.inputs.voice = this.ui.container.querySelector("#voice")
-					this.ui.inputs.rate = this.ui.container.querySelector("#rate")
-					this.ui.inputs.pitch = this.ui.container.querySelector("#pitch")
-					this.ui.inputs.text = this.ui.container.querySelector("#speaktext")
+					self.ui.container = document.querySelector(appSelector)
 
-					this.ui.buttons.speak = this.ui.container.querySelector("#doSpeakText")
-					this.ui.buttons.pause = this.ui.container.querySelector("#doPauseSpeaking")
-					this.ui.buttons.stop = this.ui.container.querySelector("#doStopSpeaking")
-					this.ui.buttons.clear = this.ui.container.querySelector("#doClearText")
+					self.ui.inputs.voice = self.ui.container.querySelector("#voice")
+					self.ui.inputs.rate = self.ui.container.querySelector("#rate")
+					self.ui.inputs.pitch = self.ui.container.querySelector("#pitch")
+					self.ui.inputs.text = self.ui.container.querySelector("#speaktext")
 
-					this.ui.progress = this.ui.container.querySelector("#speechProgress")
+					self.ui.buttons.speak = self.ui.container.querySelector("#doSpeakText")
+					self.ui.buttons.pause = self.ui.container.querySelector("#doPauseSpeaking")
+					self.ui.buttons.stop = self.ui.container.querySelector("#doStopSpeaking")
+					self.ui.buttons.clear = self.ui.container.querySelector("#doClearText")
+
+					self.ui.progress = self.ui.container.querySelector("#speechProgress")
+
+					if (self.ui.buttons.speak) {
+						self.ui.buttons.speak.addEventListener("click", () => { self.doSpeak() })
+					}
+
+					if (self.ui.buttons.clear) {
+						self.ui.buttons.clear.addEventListener("click", () => { self.doClearText() })
+					}
 				}
 
 				populateVoiceList(voices) {
@@ -256,7 +282,7 @@
 								if (voiceItems.length > 10) {
 									if (currentLang !== i.lang) {
 										if (currentOptGroup !== undefined) {
-											this.ui.inputs.voice.appendChild(currentOptGroup)
+											self.ui.inputs.voice.appendChild(currentOptGroup)
 										}
 										
 										currentOptGroup = document.createElement("optgroup")
@@ -272,43 +298,60 @@
 									currentOptGroup.append(opt)
 								}
 								else {
-									this.ui.inputs.voice.appendChild(opt)
+									self.ui.inputs.voice.appendChild(opt)
 								}
 								
 								currentLang = i.lang
 							}) 
 						}
 					}
+				}
 
+				doSpeak() {
+					const voice = self.ui.inputs.voice.value
+					const rate = self.ui.inputs.rate.value
+					const pitch = self.ui.inputs.pitch.value
+					const text = self.ui.inputs.text.value
+
+					if (voice.length > 0 && text.length > 0) {
+						const speaker = new Speaker(voice, rate, pitch)
+						speaker.speak(text)
+					}
+				}
+
+				doClearText() {
+					self.ui.inputs.text.value = ""
 				}
 			}
 
 			class Speaker {
-				voices = {
-					"en-GB": [],
-					"en-GB-SCOTLAND": [],
-					"en-US": [],
-					"en-US-NYC": [],
-				} 
+				voice = undefined 
+				rate = 1.0
+				pitch = 1.0
 
-				constructor() {
-					// PASS: 
+				constructor(voice, rate, pitch) {
+					this.voice = voice
+					this.rate = rate || 1.0
+					this.pitch = pitch || 1.0
 				}
 
-				setVoices(voicelist) {
-					this.voices["en-GB"] = voicelist.filter((v) => v.lang === "en-GB")
-					this.voices["en-GB-SCOTLAND"] = voicelist.filter((v) => v.lang === "en-GB-SCOTLAND")
-					this.voices["en-US"] = voicelist.filter((v) => v.lang === "en-US")
-					this.voices["en-US-NYC"] = voicelist.filter((v) => v.lang === "en-US-NYC") 
+				speak(text) {
+					if (text.length > 0 && this.voice.length > 0) {
+						const utterance = new SpeechSynthesisUtterance(text)
+						utterance.rate = this.rate
+						utterance.pitch = this.pitch
+						utterance.voice = voicelist.find((v) => v.voiceURI === this.voice)
+
+						speechEngine.speak(utterance)
+					}	
 				}
 			}
-
-			const app = new App("#app")
-			const speaker = new Speaker()
 			
 			// Firefox will be fine here, Chrome will use the event listener above...
-			speaker.setVoices(voicelist) 
-			app.populateVoiceList(speaker.voices)
+			setVoices(voicelist)
+			
+			const app = new App("#app")
+			app.populateVoiceList(voices)
 		</script>
 
 	</body>
