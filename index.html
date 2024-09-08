@@ -98,11 +98,6 @@
 
 					<ul>
 						<li>
-							<label for="name">Name:</label>
-							<input type="text" name="Name" id="name">
-						</li>
-
-						<li>
 							<label for="voice">Voice:</label>
 							<select name="Voice" id="voice">
 								<option>Select a voice...</option>
@@ -131,7 +126,7 @@
 					<legend>Text to Speak</legend>
 
 					<div>
-						<label style="display: none;">Enter text to speak</label>
+						<label for="speaktext" style="display: none;">Enter text to speak</label>
 						<textarea name="TextToSpeak" id="speaktext" cols="100" rows="5"></textarea>
 					</div>
 
@@ -148,18 +143,40 @@
 
 		<script>
 
-			class App {
-				constructor(appSelector) {
-					this.ui = {}
-					this.ui.buttons = {}
+			const speechEngine = window.speechSynthesis
 
+			// English language options are "en-029", "en-GB", "en-GB-SCOTLAND", "en-GB-X-GBCLAN", "en-GB-X-GBCWMD", "en-GB-X-RP", "en-US", "en-US-NYC"
+			let voicelist = speechEngine.getVoices() // Firefox returns a *CORNUCOPIA* of voices... and Chrome needs an event listener to record the list
+			speechEngine.addEventListener("voiceschanged", () => {
+				voicelist = speechEngine.getVoices()
+				speaker.setVoices(voicelist)
+			})
+
+			class App {
+				ui = {
+					container: undefined,
+					buttons: {
+						speak: undefined,
+						pause: undefined,
+						stop: undefined,
+						clear: undefined,
+					},
+					inputs: {
+						voice: undefined,
+						rate: undefined,
+						pitch: undefined,
+						text: undefined,
+					},	
+					progress: undefined,
+				}
+
+				constructor(appSelector) {
 					this.ui.container = document.querySelector(appSelector)
 
-					this.ui.name = this.ui.container.querySelector("#name")
-					this.ui.voice = this.ui.container.querySelector("#voice")
-					this.ui.rate = this.ui.container.querySelector("#rate")
-					this.ui.pitch = this.ui.container.querySelector("#pitch")
-					this.ui.speaktext = this.ui.container.querySelector("#speaktext")
+					this.ui.inputs.voice = this.ui.container.querySelector("#voice")
+					this.ui.inputs.rate = this.ui.container.querySelector("#rate")
+					this.ui.inputs.pitch = this.ui.container.querySelector("#pitch")
+					this.ui.inputs.text = this.ui.container.querySelector("#speaktext")
 
 					this.ui.buttons.speak = this.ui.container.querySelector("#doSpeakText")
 					this.ui.buttons.pause = this.ui.container.querySelector("#doPauseSpeaking")
@@ -171,10 +188,28 @@
 			}
 
 			class Speaker {
-				constructor() {}
+				voices = {
+					"en-GB": [],
+					"en-GB-SCOTLAND": [],
+					"en-US": [],
+					"en-US-NYC": [],
+				} 
+
+				constructor() {
+					// PASS: 
+				}
+
+				setVoices(voicelist) {
+					this.voices["en-GB"] = voicelist.filter((v) => v.lang === "en-GB")
+					this.voices["en-GB-SCOTLAND"] = voicelist.filter((v) => v.lang === "en-GB-SCOTLAND")
+					this.voices["en-US"] = voicelist.filter((v) => v.lang === "en-US")
+					this.voices["en-US-NYC"] = voicelist.filter((v) => v.lang === "en-US-NYC") 
+				}
 			}
 
-			const app = new App("#app");
+			const app = new App("#app")
+			const speaker = new Speaker()
+			speaker.setVoices(voicelist); // Firefox will be fine here, Chrome will use the event listener above...
 
 		</script>
 
