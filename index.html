@@ -232,6 +232,8 @@
 					const voiceKeys = Object.keys(voices)
 
 					if (voiceKeys.length > 0) {
+						self.ui.inputs.voice.innerHTML = "<option>Select a voice...</option>"
+
 						let voiceItems = []
 
 						voiceKeys.forEach((k) => {
