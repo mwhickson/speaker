@@ -157,19 +157,15 @@
 
 			const voices = {
 				"en-GB": [],
-				"en-GB-SCOTLAND": [],
 				"en-US": [],
-				"en-US-NYC": [],
 			} 
 
 			const setVoices = (voicelist) => {
 				voices["en-GB"] = voicelist.filter((v) => v.lang === "en-GB")
-				voices["en-GB-SCOTLAND"] = voicelist.filter((v) => v.lang === "en-GB-SCOTLAND")
 				voices["en-US"] = voicelist.filter((v) => v.lang === "en-US")
-				voices["en-US-NYC"] = voicelist.filter((v) => v.lang === "en-US-NYC") 
 			}
 
-			// Firefox returns a *CORNUCOPIA* of voices... and Chrome needs an event listener to record the list
+			// Firefox returns a *CORNUCOPIA* of voices (they're pretty "old school" speech synthesis though)... and Chrome needs an event listener to record the list
 			// English language options are "en-029", "en-GB", "en-GB-SCOTLAND", "en-GB-X-GBCLAN", "en-GB-X-GBCWMD", "en-GB-X-RP", "en-US", "en-US-NYC"
 			let voicelist = speechEngine.getVoices() 
 			speechEngine.addEventListener("voiceschanged", () => {
@@ -237,14 +233,8 @@
 									case "en-GB":
 										friendlyLang = "English (Britain)"
 										break
-									case "en-GB-SCOTLAND":
-										friendlyLang = "English (Scotland)"
-										break
 									case "en-US":
 										friendlyLang = "English (US)"
-										break
-									case "en-US-NYC":
-										friendlyLang = "English (NYC)"
 										break
 									default:
 										// PASS:
@@ -313,6 +303,11 @@
 								
 								currentLang = i.lang
 							}) 
+
+							// make sure to catch the final optgroup
+							if (currentOptGroup !== undefined) {
+								self.ui.inputs.voice.appendChild(currentOptGroup)
+							}
 						}
 					}
 				}
